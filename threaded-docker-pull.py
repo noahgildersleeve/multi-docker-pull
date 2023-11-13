@@ -51,11 +51,12 @@ async def main():
     # Open the file from the parameter and read in every line
     file1 = open(args.filename, 'r')
     Lines = file1.readlines()
-    total_sleep_time = 0
     started_at = time.monotonic()
     iteration = 1
     # Check the length of the file then iterate through it
     length = len(Lines)
+    if args.workers > length:
+        raise Exception("number of workers can't be more than the length of image-list")
     while length > 0:
         threads = []
         # Creates the pool of threads and then loops them until the total file has been parsed
@@ -79,4 +80,3 @@ async def main():
     print(f'{total_workers} workers processed in parallel for {total_slept_for:.2f} seconds')
 
 asyncio.run(main())
-# main()

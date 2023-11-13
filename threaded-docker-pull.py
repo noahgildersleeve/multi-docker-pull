@@ -3,26 +3,25 @@ client = docker.from_env()
 import argparse
 import asyncio
 import time
-import tarfile
-import gzip
 from threading import Thread
 import subprocess
 
-def tar_docker(docker_list, tarName):
+def tar_docker(docker_list, tarName, pigz):
     started_at = time.monotonic()  
-    images = []
     new_list=""
     for i in docker_list:
         new_list+=i.strip()+" "
     print(new_list)
     # This part is if you need to do this with gzip for any reason
-    # process = subprocess.run("docker save " + new_list +" | gzip --stdout > "+ tarName, shell=True,
-    #                      stdout=subprocess.PIPE, 
-    #                      universal_newlines=True)
+    if pigz:
+        process = subprocess.run("docker save " + new_list +" | pigz -c -4 > "+ tarName, shell=True,
+                            stdout=subprocess.PIPE, 
+                            universal_newlines=True)
+    else:
+        process = subprocess.run("docker save " + new_list +" | gzip --stdout > "+ tarName, shell=True,
+                            stdout=subprocess.PIPE, 
+                            universal_newlines=True)
     # Creates the tar.gz file with pigz
-    process = subprocess.run("docker save " + new_list +" | pigz -c -4 > "+ tarName, shell=True,
-                         stdout=subprocess.PIPE, 
-                         universal_newlines=True)
     process
     print(process.stdout)
     total_time = time.monotonic() - started_at
@@ -45,17 +44,21 @@ async def main():
     parser.add_argument('--workers', type=int, default=30, help='Number of Threads')
     parser.add_argument('--save', type=bool, default=False, help='bool for saving images to tar.gz')
     parser.add_argument('--tarName', default='rancher-images.tar.gz', help="Filename of output Tar")
+    parser.add_argument('--pigz', type=bool, default=True, help="bool for using pigz")
     args = parser.parse_args()
-    # parser.print_help()
+    parser.print_help()
 
     # Open the file from the parameter and read in every line
     file1 = open(args.filename, 'r')
     Lines = file1.readlines()
-    total_sleep_time = 0
     started_at = time.monotonic()
     iteration = 1
     # Check the length of the file then iterate through it
     length = len(Lines)
+    if args.workers > length:
+        raise Exception("number of workers can't be more than the length of image-list")
+    if args.workers <= 0:
+        raise Exception("workers can't be less than or equal to 0")
     while length > 0:
         threads = []
         # Creates the pool of threads and then loops them until the total file has been parsed
@@ -70,7 +73,7 @@ async def main():
         iteration = iteration +1
     # Checks if save is true and tars the docker images
     if args.save:
-        tar_docker(Lines, args.tarName)
+        tar_docker(Lines, args.tarName, args.pigz)
 
     # Get the amount of time and number of total threads.
     total_slept_for = time.monotonic() - started_at
@@ -79,4 +82,3 @@ async def main():
     print(f'{total_workers} workers processed in parallel for {total_slept_for:.2f} seconds')
 
 asyncio.run(main())
-# main()

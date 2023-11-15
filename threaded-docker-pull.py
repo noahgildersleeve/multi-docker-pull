@@ -41,7 +41,7 @@ async def main():
     # Adds in the parameters and help for the script
     parser = argparse.ArgumentParser(description='Download Rancher images locally.')
     parser.add_argument('filename', help='Filename of image list')
-    parser.add_argument('--workers', type=int, default=30, help='Number of Threads')
+    parser.add_argument('--workers', type=int, default=8, help='Number of Threads')
     parser.add_argument('--save', type=bool, default=False, help='bool for saving images to tar.gz')
     parser.add_argument('--tarName', default='rancher-images.tar.gz', help="Filename of output Tar")
     parser.add_argument('--pigz', type=bool, default=True, help="bool for using pigz")
